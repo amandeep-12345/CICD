@@ -1,19 +1,51 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
-- main
+- main   # jab bhi main branch pe push hoga
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+variables:
+  nodeVersion: '18.x'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+stages:
+# ------------------ BUILD STAGE ------------------
+- stage: Build
+  displayName: Build Stage
+  jobs:
+  - job: BuildJob
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: $(nodeVersion)
+      displayName: 'Install Node.js'
+
+    - script: |
+        npm install
+        npm run build
+      displayName: 'Install & Build'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: 'dist'
+        ArtifactName: 'drop'
+      displayName: 'Publish Artifacts'
+
+# ------------------ DEPLOY STAGE ------------------
+- stage: Deploy
+  displayName: Deploy Stage
+  dependsOn: Build
+  jobs:
+  - deployment: DeployWeb
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+
+          - script: |
+              echo "Deploying application..."
+              # yahan actual deploy command likh
+              # example: Azure Web App deploy / Docker push
+            displayName: 'Deploy Step'
